@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+
+        gtag('config', 'UA-8175315-23');
+    </script>
+
+    <meta charset="utf-8">
+    <title>Magnet and Loop</title>
+</head>
+
+<body style="font-family:sans-serif; font-size:15px; width:600px; margin-left:auto; margin-right:auto;">
+    <center>
+        <H3> Magnet and Loop by Saurabh And Nishant</H3>
+
+        <div id="canvasesdiv" style="position:relative; width:600px; height:500px">
+            <canvas id="myCanvas" style="position:absolute; left:0px; top:0px;" width="600" height="500"></canvas>
+    </center>
+    <center>
+        <div id="buttons">
+            <input type="button" id="play" value="Play" onclick="play()">
+            <input type="button" id="pause" value="Pause" onclick="pause()">
+            <input type="button" id="stepback" value="<< Step" onclick="stepBack()">
+            <input type="button" id="stepforward" value="Step >>" onclick="stepForward()">
+            <input type="button" id="reset" value="Reset" onclick="reset()">
+        </div>
+        <div id="morebuttons">
+            <input type="button" id="orientbutton" value="Reverse the Magnet" onclick="reverse()">
+        </div>
+
+    </center>
+
+    <script>
+        function play() {
+            window.clearTimeout(timer);
+            runFlag = 1;
+            runMotion();
+
+        }
+
+        function pause() {
+            window.clearTimeout(timer);
+            runFlag = 0;
+
+        }
+
+        function stepForward() {
+            window.clearTimeout(timer);
+            runFlag = 1;
+            drawMotion();
+
+        }
+
+        function stepBack() {
+            window.clearTimeout(timer);
+            index = index - 2;
+            if (index < -1) index = -1;
+            time = index / 20;
+            xPos = xBase;
+            runFlag = 1;
+            drawMotion();
+
+        }
+
+
+        function reset() {
+            window.clearTimeout(timer);
+            index = -1;
+            time = 0.0;
+            xLo = 0.0;
+            offset = 0;
+            count = 100
+            maxTicks = 10;
+            ray[0].emf = 0.0
+            message = "You can Move the magnet left or right by dragging the dot at the center of the magnet";
+
+            magnetX = 490;
+            runFlag = 1;
+            runMotion();
+
+        }
+
+        function reverse() {
+            orientation = -orientation;
+            reset();
+
+        }
+
+
+
+        var canvas = document.getElementById("myCanvas");
+        var context = canvas.getContext("2d");
+        canvas.onmousedown = myDown; // mouse event handler for computer browsers
+        canvas.onmouseup = myUp; // mouse event handler for computer browsers
+        canvas.addEventListener("touchstart", myTouchStart, false); // touch handler for iPhones, iPads, and Androids
+        canvas.addEventListener("touchmove", myTouchMove, false); // touch handler for iPhones, iPads, and Androids
+        canvas.addEventListener("touchend", myTouchEnd, false); // touch handler for iPhones, iPads, and Androids
+
+        var index = -1;
+        var xBase = 90;
+        var yBase = 190;
+        var yBase2 = 370;
+        var xInit = 37;
+        var graphType = 1;
+        var graphTitle = 'Magnetic flux as a function of time';
+        var graphTitle2 = 'Induced emf as a function of time';
+        var yAxisTitle = 'Flux (T m^2)';
+        var yAxisTitle2 = 'emf (V)';
+        var xAxisTitle = 't (s)';
+        var xAxisTitle2 = 't (s)';
+        var yIncrement = 20;
+        var yNumDecimals = 0;
+        var yStart = yBase + 120;
+        var plotColor = '#ff00ff';
+        var scenario = 1;
+        var time = 0.0;
+        var deltat = 1 / 80.0;
+        var timer;
+        var runFlag = 0;
+        var radius = 4;
+        var x = 0;
+        var flux = 0;
+        var emf = 0;
+        var orientation = 1;
+        var magnetX = 490;
+        var magnetY = 80;
+        var coilX = xBase + 200;
+        var maxIndex;
+        var xLo = 0.0;
+        var offset = 0;
+        var count = 100
+        var maxTicks = 10;
+        var message = "Move the magnet left or right by dragging the dot at the center of the magnet";
+        var arraySize = 401;
+        var ray = new Array(arraySize);
+
+        for (i = 0; i < arraySize; i++) {
+            ray[i] = {};
+            ray[i].flux = 0.0;
+            ray[i].emf = 0.0;
+        }
+
+        reset();
+
+        function drawMotion() {
+
+            //    console.log("In the drawMotion function, with runFlag = " + runFlag );
+
+            if (index >= 400) {
+                maxTicks = 9;
+                message = "";
+                for (i = 1; i < arraySize; i++) {
+                    ray[i - 1].flux = ray[i].flux;
+                    ray[i - 1].emf = ray[i].emf;
+                }
+                count = count + 1;
+                offset = offset - 1;
+                if (count > 39) {
+                    count = 0;
+                    offset = 39;
+                    xLo = xLo + 0.5;
+                }
+            }
+
+            //    console.log("In the drawMotion function, with runFlag = " + runFlag + " Fx = " + Fx);
+
+            if (runFlag == 1) { //      run if runFlag equal 1, not if equal 0
+                // clear
+                context.clearRect(0, 0, canvas.width, canvas.height);
+
+                index = index + 1;
+                maxIndex = index;
+                if (maxIndex > 400) maxIndex = 400;
+
+                // set background color for the entire thing
+                context.fillStyle = "#E0FFFF";
+                context.fillRect(0, 0, canvas.width, canvas.height);
+
+                // set background color for the first graph
+                context.fillStyle = "#eff";
+                context.fillRect(xBase, yBase, 400, 80);
+
+                // set background color for the second graph
+                context.fillStyle = "#eff";
+                context.fillRect(xBase, yBase2, 400, 80);
+
+                context.strokeStyle = '#000';
+                context.lineWidth = 1;
+
+                // vertical grid lines
+                for (var i = 0; i <= maxTicks; i++) {
+                    context.beginPath();
+                    context.moveTo(xBase + 40 * i + offset, yBase);
+                    context.lineTo(xBase + 40 * i + offset, yBase + 86);
+                    context.stroke();
+                    context.font = '14pt Calibri';
+                    context.fillStyle = 'black';
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+                    axisValue = xLo + i / 2.0;
+                    axisLabel = axisValue.toFixed(1);
+                    context.fillText(axisLabel, xBase + 40 * i + offset, yBase + 95);
+
+                    context.beginPath();
+                    context.moveTo(xBase + 40 * i, yBase2);
+                    context.lineTo(xBase + 40 * i, yBase2 + 86);
+                    context.stroke();
+                    context.font = '14pt Calibri';
+                    context.fillStyle = 'black';
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+                    axisValue = xLo + i / 2.0;
+                    axisLabel = axisValue.toFixed(1);
+                    context.fillText(axisLabel, xBase + 40 * i + offset, yBase2 + 95);
+
+                }
+
+                // horizontal grid lines
+                for (i = 0; i <= 2; i++) {
+                    context.beginPath();
+                    context.moveTo(xBase - 10, yBase + 40 * i);
+                    context.lineTo(xBase + 400, yBase + 40 * i);
+                    context.stroke();
+                    context.font = '14pt Calibri';
+                    context.fillStyle = 'black';
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+
+                    if (graphType == 1) {
+                        axisValue = yIncrement * 0.02 * (1 - i);
+
+                    }
+
+
+                    axisLabel = axisValue.toFixed(2);
+                    context.fillText(axisLabel, xBase - 30, yBase + 40 * i);
+
+                    context.beginPath();
+                    context.moveTo(xBase - 10, yBase2 + 40 * i);
+                    context.lineTo(xBase + 400, yBase2 + 40 * i);
+                    context.stroke();
+                    context.font = '14pt Calibri';
+                    context.fillStyle = 'black';
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+
+                    if (graphType == 1) {
+                        axisValue = 0.1 * yIncrement * (1 - i);
+
+                    }
+
+
+                    axisLabel = axisValue.toFixed(yNumDecimals);
+                    context.fillText(axisLabel, xBase - 20, yBase2 + 40 * i);
+
+                }
+
+                // x-axis
+                context.strokeStyle = '#000';
+                context.lineWidth = 4;
+                context.beginPath();
+                context.moveTo(xBase - 1, yBase + 80);
+                context.lineTo(xBase + 420, yBase + 80);
+                context.stroke();
+                context.moveTo(xBase + 410, yBase + 80 - 6);
+                context.lineTo(xBase + 420, yBase + 80);
+                context.lineTo(xBase + 410, yBase + 80 + 6);
+                context.lineJoin = 'miter';
+                context.stroke();
+                context.font = '16pt Calibri';
+                context.fillStyle = 'black';
+                context.textAlign = 'left';
+                context.fillText(xAxisTitle, xBase + 428, yBase + 80);
+
+                context.beginPath();
+                context.moveTo(xBase - 1, yBase2 + 80);
+                context.lineTo(xBase + 420, yBase2 + 80);
+                context.stroke();
+                context.moveTo(xBase + 410, yBase2 + 80 - 6);
+                context.lineTo(xBase + 420, yBase2 + 80);
+                context.lineTo(xBase + 410, yBase2 + 80 + 6);
+                context.lineJoin = 'miter';
+                context.stroke();
+                context.font = '16pt Calibri';
+                context.fillStyle = 'black';
+                context.textAlign = 'left';
+                context.fillText(xAxisTitle2, xBase + 428, yBase2 + 80);
+
+
+                // y-axis
+                context.strokeStyle = '#000';
+                context.beginPath();
+                context.moveTo(xBase, yBase - 20);
+                context.lineTo(xBase, yBase + 80);
+                context.stroke();
+                context.moveTo(xBase - 6, yBase - 10);
+                context.lineTo(xBase, yBase - 20);
+                context.lineTo(xBase + 6, yBase - 10);
+                context.lineJoin = 'miter';
+                context.stroke();
+                context.strokeStyle = '#000';
+                context.textAlign = 'center';
+                context.fillText(yAxisTitle, xBase, yBase - 35);
+
+                context.moveTo(xBase, yBase2 - 20);
+                context.lineTo(xBase, yBase2 + 80);
+                context.stroke();
+                context.moveTo(xBase - 6, yBase2 - 10);
+                context.lineTo(xBase, yBase2 - 20);
+                context.lineTo(xBase + 6, yBase2 - 10);
+                context.lineJoin = 'miter';
+                context.stroke();
+                context.strokeStyle = '#000';
+                context.textAlign = 'center';
+                context.fillText(yAxisTitle2, xBase, yBase2 - 35);
+
+                // set line color
+                context.strokeStyle = '#999';
+                context.lineWidth = 2;
+
+                time = index / 80.0;
+
+                // draw the first half of the loop
+                context.strokeStyle = '#f00';
+                context.lineWidth = 2;
+                for (var i = 0; i <= 50; i++) {
+                    context.beginPath();
+                    context.arc(xBase + 200 - 30 * Math.sin(Math.PI * i / 50), 80 + 50 * Math.cos(Math.PI * i / 50), radius, 0, 2 * Math.PI, false);
+                    context.fillStyle = '#f00';
+                    context.fill();
+                    context.stroke();
+                }
+
+                // draw the magnet
+
+                context.fillStyle = "#bbb";
+                context.fillRect(magnetX - 60, magnetY - 20, 120, 40);
+                context.fillStyle = 'black';
+                context.textAlign = 'center';
+                if (orientation > 0.0) {
+                    context.fillText("N", magnetX - 50, 80);
+                    context.fillText("S", magnetX + 50, 80);
+                } else {
+                    context.fillText("S", magnetX - 50, 80);
+                    context.fillText("N", magnetX + 50, 80);
+                }
+                context.beginPath();
+                context.arc(magnetX, magnetY, radius * 2, 0, 2 * Math.PI, false);
+                context.fillStyle = 'black';
+                context.fill();
+
+
+                // draw the second half of the loop
+                context.strokeStyle = '#f00';
+                context.lineWidth = 2;
+                for (var i = 1; i <= 50; i++) {
+                    context.beginPath();
+                    context.arc(xBase + 200 + 30 * Math.sin(Math.PI * i / 50), 80 + 50 * Math.cos(Math.PI * i / 50), radius, 0, 2 * Math.PI, false);
+                    context.fillStyle = '#f00';
+                    context.fill();
+                    context.stroke();
+                }
+
+                // draw the flux graph
+                context.lineWidth = 4;
+                context.beginPath();
+                context.moveTo(xBase, yBase + 40 + 40 * ray[0].flux);
+                flux = orientation * Math.exp(-(Math.abs(magnetX - coilX) / (70)) * (Math.abs(magnetX - coilX) / (70)));
+                ray[maxIndex].flux = flux;
+
+                for (var ival = 1; ival <= maxIndex; ival++) {
+                    context.lineTo(xBase + ival, yBase + 40 + 40 * ray[ival].flux);
+                }
+                context.stroke();
+
+                // draw the emf graph
+                if (index > 2) {
+                    context.lineWidth = 4;
+                    context.strokeStyle = '#00f';
+                    ray[maxIndex].emf = -1 * ((ray[maxIndex].flux - ray[maxIndex - 1].flux) / deltat);
+                    ray[maxIndex].emf = ray[maxIndex].emf - 1 * ((ray[maxIndex - 1].flux - ray[maxIndex - 2].flux) / deltat);
+                    ray[maxIndex].emf = ray[maxIndex].emf - 1 * ((ray[maxIndex - 2].flux - ray[maxIndex - 3].flux) / deltat);
+                    ray[maxIndex].emf = ray[maxIndex].emf / 30.0;
+                    context.beginPath();
+                    context.moveTo(xBase, yBase2 + 40 + 40 * ray[0].emf);
+                    for (var ival = 1; ival <= maxIndex; ival++) {
+                        //                 emf = orientation*0.065*(ival-100)*Math.exp(-(Math.abs(ival-100)/(35))*(Math.abs(ival-100)/(35)));
+                        context.lineTo(xBase + ival, yBase2 + 40 + 40 * ray[ival].emf);
+                    }
+                    context.stroke();
+                }
+
+                //     console.log("In the drawMotion function, with runFlag = " + runFlag + " x2 = " + x2);
+
+
+                // graph title
+                context.font = 'bold 16pt Calibri';
+                context.fillStyle = 'purple';
+                context.textAlign = 'center';
+                context.fillText(graphTitle, (canvas.width) / 2, yBase - 25);
+                context.fillText(graphTitle2, (canvas.width) / 2 + 20, yBase2 - 25);
+
+                context.font = '16pt Calibri';
+                context.fillStyle = 'black';
+
+                var timeLabel = 't = ';
+                timeLabel = timeLabel + time.toFixed(2) + ' s';
+                context.textAlign = 'left';
+                context.fillText(timeLabel, xBase + 400, 40);
+                context.font = '14pt Calibri';
+                context.fillText(message, 5, 12);
+
+
+            }
+        }
+
+        function runMotion() {
+            drawMotion();
+            if (runFlag == 1) {
+                timer = window.setTimeout(runMotion, 1000 / 60);
+            }
+        }
+
+        //  Mouse and Touch event functions from  Wolfgang Bauer
+
+        function whereClicked(x_, y_, what_) { // underscore denotes local variables
+            //if (what_ == 'down') {console.log('('+x_+','+y_+')'+what_)};
+            //	console.log('('+x_+','+y_+')'+what_);
+            //    console.log("magnetX = " + magnetX );
+            if ((Math.abs(x_ - (magnetX)) < 20) && (Math.abs(y_ - magnetY) < 20)) // moving the magnet
+            {
+                magnetX = x_;
+                //        drawMotion();
+            }
+            //        reset();
+            //      }
+            //      else if ((Math.abs(x_ - (charge2X)) < 15) && (Math.abs(y_ - charge2Y) < 15))  // moving the right-hand charge
+            //      {
+            //        charge2X = x_ ;
+            //        charge2Y = y_ ;
+            //        reset();
+            //      }
+
+            if (what_ == 'down') {
+                //		dragRect = true;
+                //		x1 = x_;     // x1, y1 are global variables
+                //		y1 = y_;
+            }
+            if (what_ == 'move') {
+                //		dragRect = true;
+                //		dx = x_-x1;
+                //		dy = y_-y1;
+            }
+            if (what_ == 'up') {
+                //		dragRect = false;
+                //		dx = x_-x1;
+                //		dy = y_-y1;
+            }
+        }
+
+        function myMove(event) {
+            var xClick = event.pageX - canvasesdiv.offsetLeft;
+            var yClick = event.pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'move');
+            //	drawAll();
+            //	drawMotion();
+
+        }
+
+        function myDown(event) {
+            var xClick = event.pageX - canvasesdiv.offsetLeft;
+            var yClick = event.pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'down');
+            canvas.onmousemove = myMove;
+            //	drawMotion();
+        }
+
+        function myUp(event) {
+            var xClick = event.pageX - canvasesdiv.offsetLeft;
+            var yClick = event.pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'up');
+            canvas.onmousemove = null;
+            //	drawMotion();
+        }
+
+        function myTouchMove(event) {
+            event.preventDefault();
+            var xClick = event.targetTouches[0].pageX - canvasesdiv.offsetLeft;
+            var yClick = event.targetTouches[0].pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'move');
+            //	drawMotion();
+        }
+
+        function myTouchStart(event) {
+            event.preventDefault();
+            var xClick = event.targetTouches[0].pageX - canvasesdiv.offsetLeft;
+            var yClick = event.targetTouches[0].pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'down');
+            //	drawMotion();
+        }
+
+        function myTouchEnd(event) {
+            event.preventDefault();
+            var xClick = event.targetTouches[0].pageX - canvasesdiv.offsetLeft;
+            var yClick = event.targetTouches[0].pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'up');
+            //	drawMotion();
+        }
+    </script>
+
+    <p>Click and drag the dot at the center of the magnet to move the magnet left or right. The graphs show the magnetic flux through each loop of the coil, as a function of time, as well as the emf induced in the coil as a function of time.</p>
+
+    <p> Written by Saurabh And Nishant</p>
+
+    <form>
+       Magnetic Field(T) : <input type="text" 
+        id="firstNumber" /><br>
+       Area of Loop(m^2) : <input type="text" 
+        id="secondNumber" /><br>
+        No. of turns in Loop : <input type="text" 
+        id="thirdNumber" /><br>
+        Time (in s) : <input type="text" 
+        id="fourthNumber" /><br>
+        <input type="button" onClick="multiplyBy()" 
+        Value="Get magnetic Flux" /><br>
+        <input type="button" onClick="multiplyBy1()" 
+        Value="Get Induced EMF" /><br>
+      </form>
+      
+      <p>Magnetic Flux (in Wb) : <br>
+       <span id = "result"></span>
+      </p>
+      <p>Induced EMF (in V) : <br>
+        <span id = "result1"></span>
+       </p>
+      
+      <script>
+        function multiplyBy()
+        {
+          num1 = document.getElementById(
+            "firstNumber").value;
+          num2 = document.getElementById(
+            "secondNumber").value;
+            num3 = document.getElementById(
+            "thirdNumber").value;
+          document.getElementById(
+            "result").innerHTML = num1 * num2 * num3 ;
+        }
+      </script>
+
+<script>
+    function multiplyBy1()
+    {
+      num1 = document.getElementById(
+        "firstNumber").value;
+      num2 = document.getElementById(
+        "secondNumber").value;
+        num3 = document.getElementById(
+        "thirdNumber").value;
+        num4 = document.getElementById(
+        "fourthNumber").value;
+
+      document.getElementById(
+        "result1").innerHTML = num1 * num2 * num3 * num4 ;
+    }
+  </script>
+
+
+</body>
+
+</html>

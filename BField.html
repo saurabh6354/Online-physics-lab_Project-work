@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-8175315-22"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+
+        gtag('config', 'UA-8175315-22');
+    </script>
+
+    <meta charset="utf-8">
+    <title>Magnetic Field by Saurabh and Nishant</title>
+</head>
+
+<body style="font-family:sans-serif; font-size:15px; width:600px; margin-left:auto; margin-right:auto;">
+    <center>
+        <H3> Magnet Field by Saurabh And Nishant</H3>
+
+        <div id="canvasesdiv" style="position:relative; width:600px; height:100px">
+            <canvas id="myCanvas" style="position:absolute; left:0px; top:0px;" width="600" height="500"></canvas>
+    </center>
+    <center>
+        <div id="canvasesdiv" style="position:relative; width:600px; height:400px">
+            <canvas id="myCanvas" style="position:absolute; left:0px; top:0px;" width="600" height="400"></canvas>
+        </div>
+        <div>Value of the left current</div>
+        <div id="slider1">
+            -10 A <input type="range" id="Current1Value" min="-10" max="10" value="5.0" step="1.0" oninput="showI1(this.value)" onchange="showI1(this.value)"> +10 A
+            <div id="initialI1Value">5</div>
+        </div>
+        <div>Value of the right current</div>
+        <div id="slider2">
+            -10 A <input type="range" id="Current2Value" min="-10" max="10" value="-5.0" step="1.0" oninput="showI2(this.value)" onchange="showI2(this.value)"> +10 A
+            <div id="initialI2Value">-5</div>
+        </div>
+
+    </center>
+
+    <script>
+        // Simulation first posted on 2-15-2015
+
+
+        function showI1(newValue) {
+            //get the element
+            var display = document.getElementById("initialI1Value");
+            //show the amount
+            display.innerHTML = newValue;
+            I1 = Number(newValue);
+            drawMotion();
+        }
+
+        function showI2(newValue) {
+            //get the element
+            var display = document.getElementById("initialI2Value");
+            //show the amount
+            display.innerHTML = newValue;
+            I2 = Number(newValue);
+            drawMotion();
+        }
+
+
+
+        var canvas = document.getElementById('myCanvas');
+        var context = canvas.getContext('2d');
+        canvas.onmousedown = myDown; // mouse event handler for computer browsers
+        canvas.onmouseup = myUp; // mouse event handler for computer browsers
+        canvas.addEventListener("touchstart", myTouchStart, false); // touch handler for iPhones, iPads, and Androids
+        canvas.addEventListener("touchmove", myTouchMove, false); // touch handler for iPhones, iPads, and Androids
+        canvas.addEventListener("touchend", myTouchEnd, false); // touch handler for iPhones, iPads, and Androids
+
+        var index = 0;
+        var xBase = 50;
+        var yBase = 200;
+        var radius = 6;
+        var runFlag = 1;
+        var time = 0.0;
+        var timer;
+        var current1X = xBase + 125;
+        var current1Y = yBase;
+        var current2X = xBase + 375;
+        var current2Y = yBase;
+        var Bx = 0;
+        var By = 0;
+        var rSq = 0;
+        var xPos = 0;
+        var yPos = 0;
+        var theta = 0;
+        var vectorColor = 'black';
+        var I1 = 5.0;
+        var I2 = -5.0;
+
+
+        drawMotion();
+
+        function drawMotion() {
+
+            //    console.log("In the drawMotion function, with runFlag = " + runFlag );
+
+            runFlag = 1;
+
+            //    console.log("In the drawMotion function, with runFlag = " + runFlag + " yPos = " + yPos + " index = " +index);
+
+            if (runFlag == 1) { //      run if runFlag equal 1, not if equal 0
+                // clear
+                context.clearRect(0, 0, canvas.width, canvas.height);
+
+                index = index + 1;
+
+                // clear
+                context.clearRect(0, 0, canvas.width, canvas.height);
+
+                // set background color for the entire thing
+                context.fillStyle = "#E0FFFF";
+                context.fillRect(0, 0, canvas.width, canvas.height);
+
+                // set line color
+                context.strokeStyle = '#999';
+                context.lineWidth = 2;
+
+                // draw currents
+                if (Math.abs(I1) > 0.2) {
+                    if (I1 > 0) {
+                        context.fillStyle = 'red';
+                        context.strokeStyle = 'red';
+                    } else {
+                        context.fillStyle = 'blue';
+                        context.strokeStyle = 'blue';
+                    }
+
+                    context.beginPath();
+                    context.arc(current1X, current1Y, radius, 0, 2 * Math.PI, false);
+                    context.fill();
+                    context.lineWidth = 2;
+                    context.stroke();
+                }
+
+                if (Math.abs(I2) > 0.2) {
+                    if (I2 > 0) {
+                        context.fillStyle = 'red';
+                        context.strokeStyle = 'red';
+                    } else {
+                        context.fillStyle = 'blue';
+                        context.strokeStyle = 'blue';
+                    }
+                    context.beginPath();
+                    context.arc(current2X, current2Y, radius, 0, 2 * Math.PI, false);
+                    context.fill();
+                    context.lineWidth = 2;
+                    context.stroke();
+                }
+
+                // draw field vectors
+                for (var i = -1; i <= 9; i++) {
+                    Bx = By = 0;
+                    xPos = xBase + 50 + 50 * i;
+                    for (var j = 0; j <= 6; j++) {
+                        yPos = 50 + 50 * j;
+                        context.beginPath();
+                        context.arc(xPos, yPos, 0.33 * radius, 0, 2 * Math.PI, false);
+                        context.fillStyle = 'black';
+                        context.fill();
+                        context.lineWidth = 2;
+                        context.strokeStyle = 'black';
+                        context.stroke();
+                        rSq = (xPos - current1X) * (xPos - current1X) + (yPos - current1Y) * (yPos - current1Y);
+                        By = 6e3 * I1 * (xPos - current1X) / rSq;
+                        Bx = 6e3 * I1 * (yPos - current1Y) / rSq;
+                        theta = Math.atan2(By, Bx);
+                        rSq = (xPos - current2X) * (xPos - current2X) + (yPos - current2Y) * (yPos - current2Y);
+                        By = By - 6e3 * I2 * (current2X - xPos) / rSq;
+                        Bx = Bx - 6e3 * I2 * (current2Y - yPos) / rSq;
+                        var B = Math.sqrt(Bx * Bx + By * By);
+                        theta = Math.atan2(By, Bx);
+                        Bx = 6 * Bx / B;
+                        By = 6 * By / B;
+                        B = B * 1;
+                        //             console.log(B);
+
+                        if (B > 255) B = 255;
+                        B = Math.round(255 - B);
+                        grayString = B.toString(16);
+                        if (grayString.length == 1) grayString = "0" + grayString;
+
+                        vectorColor = "#" + grayString + grayString + grayString;
+                        drawArrow(Bx, By, xBase + 50 + 50 * i, 50 + 50 * j, theta, vectorColor)
+
+                    }
+                }
+            }
+        }
+
+        function drawArrow(Fx, Fy, Px, Py, theta, arrowColor) {
+            context.strokeStyle = arrowColor;
+            context.lineWidth = 4;
+            context.beginPath();
+            context.moveTo(Px - 2.5 * Fx, Py + 2.5 * Fy);
+            context.lineTo(Px + 2.5 * Fx, Py - 2.5 * Fy);
+            //          context.lineTo(120+50*Fx*Math.cos(theta)+10*F*Math.cos(theta+(3.1416/2))-2*F*Math.cos(theta+0.7*(3.1416/2)),170-50*Fx*Math.sin(theta)-10*F*Math.sin(theta+(3.1416/2))+2*F*Math.sin(theta+0.7*(3.1416/2)));
+            context.stroke();
+
+            context.lineWidth = 2;
+
+            var Fmag = Math.sqrt(Fx * Fx + Fy * Fy);
+            if (Fmag > 5) Fmag = 5;
+
+            //           context.beginPath();
+            //           context.moveTo(Px+2.5*Fx,Py-2.55*Fy);
+            //           context.lineTo(Px+2.5*Fx-4*Fmag*Math.cos(theta+0.25*(3.1416/2)),Py-2.5*Fy+4*Fmag*Math.sin(theta+0.25*(3.1416/2)));
+            //           context.stroke();
+
+            //           context.beginPath();
+            //           context.moveTo(Px+2.5*Fx,Py-2.5*Fy);
+            //           context.lineTo(Px+2.5*Fx-4*Fmag*Math.cos(theta-0.25*(3.1416/2)),Py-2.5*Fy+4*Fmag*Math.sin(theta-0.25*(3.1416/2)));
+            //           context.stroke();
+
+            context.fillStyle = arrowColor;
+            context.beginPath();
+            context.moveTo(Px + 2.5 * Fx - 3 * Fmag * Math.cos(theta + 0.25 * (3.1416 / 2)), Py - 2.5 * Fy + 3 * Fmag * Math.sin(theta + 0.25 * (3.1416 / 2)));
+            context.lineTo(Px + 2.5 * Fx, Py - 2.5 * Fy);
+            context.lineTo(Px + 2.5 * Fx - 3 * Fmag * Math.cos(theta - 0.25 * (3.1416 / 2)), Py - 2.5 * Fy + 3 * Fmag * Math.sin(theta - 0.25 * (3.1416 / 2)));
+            context.stroke();
+            context.fill();
+
+
+        }
+
+        function runMotion() {
+            drawMotion();
+            if (runFlag == 1) {
+                timer = window.setTimeout(runMotion, 1000 / 30);
+            }
+        }
+
+        //  Mouse and Touch event functions from  Wolfgang Bauer
+
+        function whereClicked(x_, y_, what_) { // underscore denotes local variables
+            //if (what_ == 'down') {console.log('('+x_+','+y_+')'+what_)};
+            //	console.log('('+x_+','+y_+')'+what_);
+            //    console.log("x offset = " + current1X + " y offset = " + current1Y);
+            if ((Math.abs(x_ - (current1X)) < 15) && (Math.abs(y_ - current1Y) < 15)) // moving the left-hand current
+            {
+                current1X = x_;
+                current1Y = y_;
+
+                //        reset();
+            } else if ((Math.abs(x_ - (current2X)) < 15) && (Math.abs(y_ - current2Y) < 15)) // moving the right-hand current
+            {
+                current2X = x_;
+                current2Y = y_;
+                //        reset();
+            }
+
+            if (what_ == 'down') {
+                //		dragRect = true;
+                //		x1 = x_;     // x1, y1 are global variables
+                //		y1 = y_;
+            }
+            if (what_ == 'move') {
+                //		dragRect = true;
+                //		dx = x_-x1;
+                //		dy = y_-y1;
+            }
+            if (what_ == 'up') {
+                //		dragRect = false;
+                //		dx = x_-x1;
+                //		dy = y_-y1;
+            }
+        }
+
+        function myMove(event) {
+            var xClick = event.pageX - canvasesdiv.offsetLeft;
+            var yClick = event.pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'move');
+            //	drawAll();
+            drawMotion();
+
+        }
+
+        function myDown(event) {
+            var xClick = event.pageX - canvasesdiv.offsetLeft;
+            var yClick = event.pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'down');
+            canvas.onmousemove = myMove;
+            drawMotion();
+        }
+
+        function myUp(event) {
+            var xClick = event.pageX - canvasesdiv.offsetLeft;
+            var yClick = event.pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'up');
+            canvas.onmousemove = null;
+            drawMotion();
+        }
+
+        function myTouchMove(event) {
+            event.preventDefault();
+            var xClick = event.targetTouches[0].pageX - canvasesdiv.offsetLeft;
+            var yClick = event.targetTouches[0].pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'move');
+            drawMotion();
+        }
+
+        function myTouchStart(event) {
+            event.preventDefault();
+            var xClick = event.targetTouches[0].pageX - canvasesdiv.offsetLeft;
+            var yClick = event.targetTouches[0].pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'down');
+            drawMotion();
+        }
+
+        function myTouchEnd(event) {
+            event.preventDefault();
+            var xClick = event.targetTouches[0].pageX - canvasesdiv.offsetLeft;
+            var yClick = event.targetTouches[0].pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'up');
+            drawMotion();
+        }
+    </script>
+
+    <p>The simulation shows the magnetic field near two long-straight current-carrying wires.
+        <BR>If the wire is drawn in red, the current is directed out of the screen.
+        <BR>If the wire is drawn in blue, the current is directed into the screen.
+        <p>You should be able to click-and-drag the wires to move them around the screen, and use the sliders to change the currents.
+            
+            <SCRIPT LANGUAGE="JavaScript">
+                function bcal1() {
+                    fh = document.forms[0];
+                    def();
+                    ii = fh.i.value;
+                    ii2 = fh.i2.value;
+                    rr = fh.r.value;
+                    bb = 2 * Math.pow(10, -7) * ii / rr;
+                    fh.bt.value = bb;
+                    fh.bg.value = display(bb * 10000);
+                    ff = ii2 * bb;
+                    fh.f.value = ff
+                }
+
+                <!--display(x) checks to see if a number is too small or too large to fit in a 6-space field, and if so, displays ellipsis ...-->
+                function display(x) {
+                    xx = x;
+                    if (x < Math.pow(10, -4)) xx = "...";
+                    if (x > .99 * Math.pow(10, 5)) xx = "...";
+                    return xx
+                }
+
+                <!--default values are set for parameters which have zero values-->
+                <!--There is value in having an overall default function for a calculation to provide values for all parameter which you dont want to default to zero-->
+                function def() {
+                    fh = document.forms[0];
+                    if (fh.i.value == 0) fh.i.value = 1;
+                    if (fh.i2.value == 0) fh.i2.value = 1;
+                    if (fh.r.value == 0) fh.r.value = .1
+                }
+            </script>
+
+<FORM method="" action="">
+
+
+    <table>
+        <tr>
+            <td>For a current
+                <font size=+2>I<sub>1</sub></font> =
+                <INPUT Type="text" Name="i" Value="" Size="6" onChange=bcal1()> Amperes and</td>
+        </tr>
+    </table>
+    <table>
+        <tr>
+            <td>radial separation between wires
+                <font size=+2>r</font> =
+                <INPUT Type="text" Name="r" Value="" Size="6" onChange=bcal1()>m,</td>
+        </tr>
+    </table>
+    <table>
+        <tr>
+            <td> the magnetic field at wire 2 is
+                <font size=+2>B</font> =
+                <INPUT Type="text" Name="bt" Value="" Size="8" onChange=bcal1()> Tesla =
+                <INPUT Type="text" Name="bg" Value="" Size="6" onChange=bcal1()>Gauss. </td>
+        </tr>
+    </table>
+    <BR>
+    <BR>
+    <table>
+        <tr>
+            <td>If current
+                <font size=+2>I<sub>2</sub></font> =
+                <INPUT Type="text" Name="i2" Value="" Size="6" onChange=bcal1()> Amperes </td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td>then the force per meter is
+                <font size=+2>F/&#916;L</font> =
+                <INPUT Type="text" Name="f" Value="" Size="10" onChange=bcal1()>Newtons/m </td>
+        </tr>
+    </table>
+
+</form>
+
+</body>
+
+</html>

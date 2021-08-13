@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-8175315-26"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+
+        gtag('config', 'UA-8175315-26');
+    </script>
+
+    <meta charset="utf-8">
+    <title>EM wave</title>
+</head>
+
+<body>
+    <center>
+        <div id="canvasesdiv" style="position:relative; width:768px; height:576px">
+            <canvas id="layer1" style="z-index: 1; position:absolute; left:0px; top:0px;" height="576" width="768" tabindex="0">
+          This text is displayed if your browser does not support HTML5 Canvas.
+		</canvas>
+        </div>
+        <BR>
+        <div id="buttons">
+            <input type="button" id="play" value="Play" onclick="play();">
+            <input type="button" id="pause" value="Pause" onclick="runFlag=0;">
+            <input type="button" id="reset" value="Restart" onclick="index = 0; if (runFlag==0) { play(); }">
+        </div>
+
+    </center>
+    <p>
+        This simulation shows a plane-polarized electromagnetic wave that is traveling in the +z direction. One color is for the electric field vectors and the other color is for the magnetic field vectors. The right-hand rule says that if you point the fingers
+        of your right hand in the direction of the electric field vector at a particular location, and then curl your fingers into the direction of the magnetic field vectors, your thumb should point in the direction of the way the wave is traveling.
+        Using this rule, you should be able to determine which color arrows represent the electric field vectors and which color arrows represent the magnetic field vectors.
+    </p>
+    
+
+
+    <script type="text/javascript">
+        var layer1 = document.getElementById("layer1");
+        var ctx1 = layer1.getContext("2d");
+        var WIDTH = 768,
+            HEIGHT = 576;
+        var eViewer = [0, 0, 1.2, 8.0]; // viewer coordinates in 3d space eViewer[1] = horizontal x-cordinate, eViewer[2] = vertical y-coordinate, eViewer[3] = out of screen z-coordinate
+        var cViewer = [0, 0, 1.2, 8.0]; // camera coordinates in 3d space cViewer[1] = horizontal x-cordinate, cViewer[2] = vertical y-coordinate, cViewer[3] = out of screen z-coordinate
+        var thetay3d = 0.5; // rotation angle about the y-axis
+        var x03d = 380; // shift of origin of coordinate system
+        var y03d = -100;
+        var yPlot; // second coordinate of xPlot function call (clumsy fix, because function cannot return two arguments)
+        var pixelScale = 150.0; // determines the size of the unit cube on the screen
+        var drag_horizontal = false,
+            drag_vertical = false; // drag control of the two sliders
+        var p, V, T, pscaled, Vscaled, Tscaled;
+        var constantV = false,
+            constantT = false,
+            constantp = false;
+        var inter = setInterval(drawAll, 40); // set the time between successive screen updates to 40 ms
+        var iControl = 0,
+            numInter = 0; // counters for screen updates
+        layer1.onmousedown = myDown; // mouse event handler for computer browsers
+        layer1.onmouseup = myUp; // mouse event handler for computer browsers
+        layer1.addEventListener('keydown', doKeyDown, true); // keyboard entry on computers
+        layer1.addEventListener("touchstart", myTouchStart, false); // touch handler for iPhones, iPads, and Androids
+        layer1.addEventListener("touchmove", myTouchMove, false); // touch handler for iPhones, iPads, and Androids
+        layer1.addEventListener("touchend", myTouchEnd, false); // touch handler for iPhones, iPads, and Androids
+        var runFlag = 1;
+        var index = 0;
+        init();
+
+        function play() {
+            window.clearTimeout(timer);
+            runFlag = 1;
+            if (index > 999) {
+                index = 0;
+            }
+            runMotion();
+        }
+
+
+        function init() {
+            runMotion();
+        }
+
+        function drawAll() {
+            //	var allLoaded =  bgImage.complete;
+            var allLoaded = true;
+            var xPos = 0.0;
+            var yPos = 0.0;
+            var zPos = 0.0;
+            var eFieldX = 0.0;
+            var eFieldY = 0.0;
+            var eFieldZ = 0.0;
+            var bFieldX = 0.0;
+            var bFieldY = 0.0;
+            var bFieldZ = 0.0;
+
+            // iControl monitors how many redraws there have been already since the start of the app
+            iControl++;
+            // here we allow the first n redraws at the start of the app to make sure that all images have loaded
+            if (allLoaded && numInter == 0 && iControl > 10) {
+                numInter = iControl;
+                inter = window.clearInterval(inter);
+            };
+
+            if (index > 999) index = 999;
+
+            if (runFlag == 1) {
+
+                index = index + 1;
+                time = index / 100;
+                layer1.width = layer1.width; // clear canvas
+
+                draw3dCube();
+
+                myHorizontalSlider(160, 555, 508, 2 * Math.PI, 0, thetay3d, ctx1);
+                myVerticalSlider(737, 23, 470, 3, -3, eViewer[2], ctx1);
+
+                // V = [0,2] m^2,  p = [0,10^5] Pa,  T = [0,10^4] K;   pV = NRT, R = 8.31, N=1
+                var imax = 20;
+
+                // draw the electric field and magnetic field vectors
+                for (i = 0; i <= 30; i++) {
+                    xPos = 0.0;
+                    yPos = 0.0;
+                    zPos = -1 + 2 * i / 30;
+                    eFieldX = 1 * Math.cos(2.0 * Math.PI * 2 * i / 50 - 2.0 * Math.PI * time);
+                    eFieldY = 0.0;
+                    eFieldZ = 0.0;
+
+                    drawArrow(eFieldX, eFieldY, eFieldZ, xPos, yPos, zPos, "red");
+                    bFieldX = eFieldY;
+                    bFieldY = eFieldX;
+                    bFieldZ = 0.0;
+
+                    drawArrow(bFieldX, bFieldY, bFieldZ, xPos, yPos, zPos, "blue");
+
+
+                }
+
+
+            }
+
+        }
+
+        function runMotion() {
+            drawAll();
+            if (runFlag == 1) {
+                timer = window.setTimeout(runMotion, 300 / 30);
+            }
+        }
+
+
+        function myHorizontalSlider(x0Pixel, y0Pixel, widthPixel, minPhysicalValue, maxPhysicalValue, currentPhysicalValue, theContext) {
+            var holdfillStyle = theContext.fillStyle; // first: preserve all settings
+            var holdstrokeStyle = theContext.strokeStyle;
+            var holdlineWidth = theContext.lineWidth;
+            var holdshadowOffsetX = theContext.shadowOffsetX;
+            var holdshadowOffsetY = theContext.shadowOffsetY;
+            var holdshadowBlur = theContext.shadowBlur;
+            var holdshadowColor = theContext.shadowColor;
+            theContext.beginPath(); // now draw the slider
+            theContext.fillStyle = 'lightGray';
+            theContext.strokeStyle = 'gray';
+            theContext.lineWidth = 1;
+            theContext.fillRect(x0Pixel, y0Pixel - 4, widthPixel, 9);
+            theContext.strokeRect(x0Pixel, y0Pixel - 4, widthPixel, 9);
+            theContext.shadowOffsetX = 4;
+            theContext.shadowOffsetY = 4;
+            theContext.shadowBlur = 7;
+            theContext.shadowColor = "gray";
+            theContext.fillStyle = 'rgba(0,255,0,0.7)';
+            var xCurrentPixel = x0Pixel + Math.round((currentPhysicalValue - minPhysicalValue) * widthPixel / (maxPhysicalValue - minPhysicalValue));
+            theContext.fillRect(xCurrentPixel - 20, y0Pixel - 10, 41, 21);
+            theContext.lineWidth = 5;
+            theContext.strokeStyle = 'rgb(180,255,180)'
+            theContext.moveTo(xCurrentPixel, y0Pixel - 9);
+            theContext.lineTo(xCurrentPixel, y0Pixel + 9);
+            theContext.stroke();
+            theContext.fillStyle = holdfillStyle; // finally: restore all settings
+            theContext.strokeStyle = holdstrokeStyle;
+            theContext.lineWidth = holdlineWidth;
+            theContext.shadowOffsetX = holdshadowOffsetX;
+            theContext.shadowOffsetY = holdshadowOffsetY;
+            theContext.shadowBlur = holdshadowBlur;
+            theContext.shadowColor = holdshadowColor;
+        }
+
+        function myVerticalSlider(x0Pixel, y0Pixel, heightPixel, minPhysicalValue, maxPhysicalValue, currentPhysicalValue, theContext) {
+            var holdfillStyle = theContext.fillStyle; // first: preserve all settings
+            var holdstrokeStyle = theContext.strokeStyle;
+            var holdlineWidth = theContext.lineWidth;
+            var holdshadowOffsetX = theContext.shadowOffsetX;
+            var holdshadowOffsetY = theContext.shadowOffsetY;
+            var holdshadowBlur = theContext.shadowBlur;
+            var holdshadowColor = theContext.shadowColor;
+            theContext.beginPath(); // now draw the slider
+            theContext.fillStyle = 'lightGray';
+            theContext.strokeStyle = 'gray';
+            theContext.lineWidth = 1;
+            theContext.fillRect(x0Pixel - 4, y0Pixel, 9, heightPixel);
+            theContext.strokeRect(x0Pixel - 4, y0Pixel, 9, heightPixel);
+            theContext.shadowOffsetX = 4;
+            theContext.shadowOffsetY = 4;
+            theContext.shadowBlur = 7;
+            theContext.shadowColor = "gray";
+            theContext.fillStyle = 'rgba(0,255,0,0.7)';
+            var yCurrentPixel = y0Pixel + Math.round((currentPhysicalValue - minPhysicalValue) * heightPixel / (maxPhysicalValue - minPhysicalValue));
+            theContext.fillRect(x0Pixel - 10, yCurrentPixel - 20, 21, 41);
+            theContext.lineWidth = 5;
+            theContext.strokeStyle = 'rgb(180,255,180)'
+            theContext.moveTo(x0Pixel - 9, yCurrentPixel);
+            theContext.lineTo(x0Pixel + 9, yCurrentPixel);
+            theContext.stroke();
+            theContext.fillStyle = holdfillStyle; // finally: restore all settings
+            theContext.strokeStyle = holdstrokeStyle;
+            theContext.lineWidth = holdlineWidth;
+            theContext.shadowOffsetX = holdshadowOffsetX;
+            theContext.shadowOffsetY = holdshadowOffsetY;
+            theContext.shadowBlur = holdshadowBlur;
+            theContext.shadowColor = holdshadowColor;
+        }
+
+        function drawArrow(FxVal, FyVal, FzVal, PxVal, PyVal, PzVal, arrowColor) {
+            var Px = xPlot(PxVal, PyVal, PzVal);
+            var Py = yPlot;
+            var Fx = xPlot(FxVal, FyVal, FzVal);
+            var Fy = yPlot;
+            var theta = Math.atan2(Fy, Fx);
+            var finalX = xPlot(PxVal + FxVal, PyVal + FyVal, PzVal + FzVal);
+            var finalY = yPlot;
+            ctx1.strokeStyle = arrowColor;
+            ctx1.lineWidth = 4;
+            ctx1.beginPath();
+            ctx1.moveTo(Px, Py);
+            ctx1.lineTo(finalX, finalY);
+            ctx1.stroke();
+
+            ctx1.lineWidth = 2;
+
+            var Fmag = Math.sqrt(Fx * Fx + Fy * Fy);
+            if (Fmag > 5) Fmag = 5;
+
+            var arrow1X = PxVal + 0.9 * FxVal;
+            var arrow1Y = PyVal + 0.9 * FyVal;
+            var arrow1Z = PzVal + 0.06 * Math.sqrt(FxVal * FxVal + FyVal * FyVal);
+            ctx1.fillStyle = arrowColor;
+            ctx1.beginPath();
+            //           ctx1.moveTo(finalX-3*Fmag*Math.cos(theta+0.25*(3.1416/2)),finalY+3*Fmag*Math.sin(theta+0.25*(3.1416/2)));
+            //           ctx1.lineTo(finalX,finalY);
+            //           ctx1.lineTo(finalX-3*Fmag*Math.cos(theta-0.25*(3.1416/2)),finalY+3*Fmag*Math.sin(theta-0.25*(3.1416/2)));
+            ctx1.moveTo(xPlot(arrow1X, arrow1Y, arrow1Z), yPlot);
+            ctx1.lineTo(finalX, finalY);
+            arrow1Z = PzVal - 0.06 * Math.sqrt(FxVal * FxVal + FyVal * FyVal);
+            ctx1.lineTo(xPlot(arrow1X, arrow1Y, arrow1Z), yPlot);
+
+            ctx1.stroke();
+            ctx1.fill();
+
+        }
+
+
+        function whereClicked(x_, y_, what_) {
+            //if (what_ == 'down') {console.log('('+x_+','+y_+')'+what_)};
+            if (what_ == 'up') {
+                drag_vertical = false;
+                drag_horizontal = false;
+            }
+            if (what_ == 'down' && y_ > 545 && x_ > 210 && x_ < 668) {
+                drag_horizontal = true;
+                thetay3d = (668 - x_) * Math.PI * 2 / 455.;
+            }
+            if (what_ == 'move' && drag_horizontal && x_ > 210 && x_ < 668) {
+                thetay3d = (668 - x_) * Math.PI * 2 / 455.;
+            }
+            if (what_ == 'down' && x_ > 727 && y_ > 23 && y_ < 493) {
+                drag_vertical = true;
+                eViewer[2] = (258 - y_) * 3.0 / 235.;
+                cViewer[2] = eViewer[2];
+                y03d = 260 - 300 * eViewer[2];
+            }
+            if (what_ == 'move' && drag_vertical && y_ > 23 && y_ < 493) {
+                eViewer[2] = (258 - y_) * 3.0 / 235.;
+                cViewer[2] = eViewer[2];
+                y03d = 260 - 300 * eViewer[2];
+            }
+            //	if (what_ == 'down' && x_ > 1 && x_ < 210 && y_ > 204 && y_ < 260) constantV = !constantV;
+            //	if (what_ == 'down' && x_ > 1 && x_ < 210 && y_ > 306 && y_ < 362) constantT = !constantT;
+            //	if (what_ == 'down' && x_ > 1 && x_ < 210 && y_ > 408 && y_ < 464) constantp = !constantp;
+        }
+
+        function myMove(event) {
+            var xClick = event.pageX - canvasesdiv.offsetLeft;
+            var yClick = event.pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'move');
+            drawAll();
+            if (runFlag == 0) {
+                runFlag = 1;
+                index = index - 1;
+                drawAll();
+                runFlag = 0;
+            }
+        }
+
+        function myDown(event) {
+            var xClick = event.pageX - canvasesdiv.offsetLeft;
+            var yClick = event.pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'down');
+            layer1.onmousemove = myMove;
+            drawAll();
+            if (runFlag == 0) {
+                runFlag = 1;
+                index = index - 1;
+                drawAll();
+                runFlag = 0;
+            }
+        }
+
+        function myUp(event) {
+            var xClick = event.pageX - canvasesdiv.offsetLeft;
+            var yClick = event.pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'up');
+            layer1.onmousemove = null;
+            drawAll();
+            if (runFlag == 0) {
+                runFlag = 1;
+                index = index - 1;
+                drawAll();
+                runFlag = 0;
+            }
+        }
+
+        function myTouchMove(event) {
+            event.preventDefault();
+            var xClick = event.targetTouches[0].pageX - canvasesdiv.offsetLeft;
+            var yClick = event.targetTouches[0].pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'move');
+            drawAll();
+            if (runFlag == 0) {
+                runFlag = 1;
+                index = index - 1;
+                drawAll();
+                runFlag = 0;
+            }
+        }
+
+        function myTouchStart(event) {
+            event.preventDefault();
+            var xClick = event.targetTouches[0].pageX - canvasesdiv.offsetLeft;
+            var yClick = event.targetTouches[0].pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'down');
+            drawAll();
+            if (runFlag == 0) {
+                runFlag = 1;
+                index = index - 1;
+                drawAll();
+                runFlag = 0;
+            }
+        }
+
+        function myTouchEnd(event) {
+            event.preventDefault();
+            var xClick = event.targetTouches[0].pageX - canvasesdiv.offsetLeft;
+            var yClick = event.targetTouches[0].pageY - canvasesdiv.offsetTop;
+            whereClicked(xClick, yClick, 'up');
+            drawAll();
+            if (runFlag == 0) {
+                runFlag = 1;
+                index = index - 1;
+                drawAll();
+                runFlag = 0;
+            }
+        }
+
+        function writeText(xT, yT, theText, theColor, theFont, theContext) {
+            theContext.fillStyle = theColor;
+            theContext.strokeStyle = theColor;
+            theContext.font = theFont;
+            theContext.fillText(theText, xT, yT);
+        }
+
+        function drawLine(x1_, y1_, x2_, y2_, lw_, c_, context) {
+            context.beginPath();
+            context.moveTo(x1_, y1_);
+            context.lineTo(x2_, y2_);
+            context.lineWidth = lw_;
+            context.strokeStyle = c_;
+            context.stroke();
+        }
+
+        function xPlot(x3d, y3d, z3d) {
+            var xrot = y3d * Math.cos(thetay3d) - x3d * Math.sin(thetay3d); // this strange rotation is needed, because the usual convention in
+            var zrot = y3d * Math.sin(thetay3d) + x3d * Math.cos(thetay3d); // computer projections is to have the y-axis pointing up and the z-axis
+            var yrot = z3d; // out of the screen, but in physics we want the z-axis up ...
+            yPlot = Math.round(y2d(xrot, yrot, zrot) * pixelScale + y03d); // this contains the second argument to be returned, but a function can only return 1; hence this fix with a global variable
+            return Math.round(x2d(xrot, yrot, zrot) * pixelScale + x03d);
+        }
+
+        function x2d(x3d, y3d, z3d) {
+            var dx = -x3d - cViewer[1];
+            var dz = z3d - cViewer[3];
+            return (dx - eViewer[1]) * eViewer[3] / dz;
+        }
+
+        function y2d(x3d, y3d, z3d) {
+            var dy = y3d - cViewer[2];
+            var dz = z3d - cViewer[3];
+            return (dy - eViewer[2]) * eViewer[3] / dz;
+        }
+
+        function doKeyDown(event) {
+            //console.log(''+event.keyCode);
+            if (event.keyCode == 38 && eViewer[2] < 3.5) { // up key
+                cViewer[2] = cViewer[2] + 0.1;
+                eViewer[2] = eViewer[2] + 0.1;
+                y03d = y03d - 30;
+            }
+            if (event.keyCode == 40 && eViewer[2] > -3.5) { // down key
+                cViewer[2] = cViewer[2] - 0.1;
+                eViewer[2] = eViewer[2] - 0.1;
+                y03d = y03d + 30;
+            }
+            if (event.keyCode == 37) { // left key
+                thetay3d = thetay3d + 0.1;
+                if (thetay3d > Math.PI * 2) {
+                    thetay3d = thetay3d - 2 * Math.PI;
+                }
+            }
+            if (event.keyCode == 39) { // right key
+                thetay3d = thetay3d - 0.1;
+                if (thetay3d < 0) {
+                    thetay3d = thetay3d + 2 * Math.PI;
+                }
+            }
+            drawAll();
+        }
+
+        function draw3dCube() {
+            ctx1.strokeStyle = 'rgba(1,1,1,0.3)'; // draw the unit cube and coordinate axes
+            ctx1.beginPath();
+            ctx1.lineWidth = 1;
+            ctx1.moveTo(xPlot(-1, -1, -1), yPlot);
+            ctx1.lineTo(xPlot(-1, 1, -1), yPlot);
+            ctx1.lineTo(xPlot(1, 1, -1), yPlot);
+            ctx1.lineTo(xPlot(1, -1, -1), yPlot);
+            ctx1.lineTo(xPlot(-1, -1, -1), yPlot);
+            ctx1.stroke();
+            ctx1.beginPath();
+            ctx1.lineWidth = 2;
+            ctx1.lineJoin = 'bevel';
+            ctx1.moveTo(xPlot(-1, -1, -1), yPlot);
+            ctx1.lineTo(xPlot(1.15, -1, -1), yPlot);
+            ctx1.lineTo(xPlot(1.05, -0.97, -1), yPlot);
+            ctx1.lineTo(xPlot(1.05, -1.03, -1), yPlot);
+            ctx1.lineTo(xPlot(1.15, -1, -1), yPlot);
+            ctx1.lineTo(xPlot(1.05, -1, -0.97), yPlot);
+            ctx1.lineTo(xPlot(1.05, -1, -1.03), yPlot);
+            ctx1.lineTo(xPlot(1.15, -1, -1), yPlot);
+
+            ctx1.moveTo(xPlot(-1, -1, -1), yPlot);
+            ctx1.lineTo(xPlot(-1, 1.15, -1), yPlot);
+            ctx1.lineTo(xPlot(-0.97, 1.05, -1), yPlot);
+            ctx1.lineTo(xPlot(-1.03, 1.05, -1), yPlot);
+            ctx1.lineTo(xPlot(-1, 1.15, -1), yPlot);
+            ctx1.lineTo(xPlot(-1, 1.05, -0.97), yPlot);
+            ctx1.lineTo(xPlot(-1, 1.05, -1.03), yPlot);
+            ctx1.lineTo(xPlot(-1, 1.15, -1), yPlot);
+
+            ctx1.moveTo(xPlot(-1, -1, -1), yPlot);
+            ctx1.lineTo(xPlot(-1, -1, 1.15), yPlot);
+            ctx1.lineTo(xPlot(-1, -0.97, 1.05), yPlot);
+            ctx1.lineTo(xPlot(-1, -1.03, 1.05), yPlot);
+            ctx1.lineTo(xPlot(-1, -1, 1.15), yPlot);
+            ctx1.lineTo(xPlot(-0.97, -1, 1.05), yPlot);
+            ctx1.lineTo(xPlot(-1.03, -1, 1.05), yPlot);
+            ctx1.lineTo(xPlot(-1, -1, 1.15), yPlot);
+            ctx1.stroke();
+            ctx1.fillStyle = 'rgba(1,1,1,0.1)';
+            ctx1.beginPath();
+            ctx1.moveTo(xPlot(-1, -1, -1), yPlot);
+            ctx1.lineTo(xPlot(-1, 1, -1), yPlot);
+            ctx1.lineTo(xPlot(1, 1, -1), yPlot);
+            ctx1.lineTo(xPlot(1, -1, -1), yPlot);
+            ctx1.lineTo(xPlot(-1, -1, -1), yPlot);
+            ctx1.fill();
+            ctx1.beginPath();
+            ctx1.strokeStyle = 'rgba(1,1,1,0.3)';
+            ctx1.lineWidth = 1;
+            ctx1.moveTo(xPlot(-1, -1, 1), yPlot);
+            ctx1.lineTo(xPlot(-1, 1, 1), yPlot);
+            ctx1.lineTo(xPlot(1, 1, 1), yPlot);
+            ctx1.lineTo(xPlot(1, -1, 1), yPlot);
+            ctx1.lineTo(xPlot(-1, -1, 1), yPlot);
+            ctx1.stroke();
+            ctx1.beginPath();
+            ctx1.moveTo(xPlot(-1, -1, -1), yPlot);
+            ctx1.lineTo(xPlot(-1, -1, 1), yPlot);
+            ctx1.moveTo(xPlot(-1, 1, -1), yPlot);
+            ctx1.lineTo(xPlot(-1, 1, 1), yPlot);
+            ctx1.moveTo(xPlot(1, -1, -1), yPlot);
+            ctx1.lineTo(xPlot(1, -1, 1), yPlot);
+            ctx1.moveTo(xPlot(1, 1, -1), yPlot);
+            ctx1.lineTo(xPlot(1, 1, 1), yPlot);
+            ctx1.stroke();
+            writeText(xPlot(1.25, -1, -1), yPlot, 'x', 'black', 'italic 18px Times-Roman', ctx1); // x
+            writeText(xPlot(-1, 1.25, -1), yPlot, 'y', 'black', 'italic 18px Times-Roman', ctx1); // y
+            writeText(xPlot(-1, -1, 1.25), yPlot, 'z', 'black', 'italic 18px Times-Roman', ctx1); // z
+        }
+    </script>
+
+   
+
+
+</body>
+
+</html>
